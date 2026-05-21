@@ -1,7 +1,11 @@
+// Package matcher is a small, single-instrument order book and
+// matching engine used as a study aid for trading-system concepts:
+// price-time priority, partial fills, limit and market orders.
 package matcher
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -38,6 +42,7 @@ type Book struct {
 	nextSeq uint64
 }
 
+// NewBook returns an empty order book.
 func NewBook() *Book { return &Book{} }
 
 // BestBid returns the highest bid price and ok=true if a bid exists.
@@ -70,9 +75,9 @@ func (b *Book) BestAsk() (price int64, ok bool) {
 //     of liquidity on that side.
 //
 // What happens to an unfilled residual also depends on type. A Limit
-// residual is added to the book and returned via `rest`. A Market
+// residual is added to the book and returned via rest. A Market
 // residual is dropped on the floor — there is no price at which it
-// could rest — and `rest` is nil.
+// could rest — and rest is nil.
 //
 // Trades are reported at the *resting* order's price. The order that
 // was already on the book is the maker; the incoming order is the
@@ -123,6 +128,24 @@ func (b *Book) Match(incoming Order) (trades []Trade, rest *Order) {
 		rest = b.rest(incoming)
 	}
 	return trades, rest
+}
+
+// String renders a compact, human-readable snapshot of the book —
+// useful for tinkering at the REPL or eyeballing test failures.
+func (b *Book) String() string {
+	var sb strings.Builder
+	sb.WriteString("            ASKS\n")
+	// Print asks from worst (highest) to best (lowest) so the spread
+	// sits in the middle, like a ladder display on a trading screen.
+	for _, pl := range slices.Backward(b.Asks) {
+		fmt.Fprintf(&sb, "  %6d  x %d\n", pl.price, pl.totalQty())
+	}
+	sb.WriteString("  ------- spread -------\n")
+	for _, pl := range b.Bids {
+		fmt.Fprintf(&sb, "  %6d  x %d\n", pl.price, pl.totalQty())
+	}
+	sb.WriteString("            BIDS\n")
+	return sb.String()
 }
 
 // oppositeSide returns a pointer to the slice the incoming order will
@@ -181,22 +204,4 @@ func (b *Book) rest(o Order) *Order {
 	copy((*levels)[i+1:], (*levels)[i:])
 	(*levels)[i] = &priceLevel{price: o.Price, orders: []*Order{stored}}
 	return stored
-}
-
-// String renders a compact, human-readable snapshot of the book —
-// useful for tinkering at the REPL or eyeballing test failures.
-func (b *Book) String() string {
-	var sb strings.Builder
-	sb.WriteString("            ASKS\n")
-	// Print asks from worst (highest) to best (lowest) so the spread
-	// sits in the middle, like a ladder display on a trading screen.
-	for i := len(b.Asks) - 1; i >= 0; i-- {
-		fmt.Fprintf(&sb, "  %6d  x %d\n", b.Asks[i].price, b.Asks[i].totalQty())
-	}
-	sb.WriteString("  ------- spread -------\n")
-	for _, pl := range b.Bids {
-		fmt.Fprintf(&sb, "  %6d  x %d\n", pl.price, pl.totalQty())
-	}
-	sb.WriteString("            BIDS\n")
-	return sb.String()
 }

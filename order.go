@@ -4,6 +4,7 @@ package matcher
 // a Sell wants to dispose of it. A match always pairs one of each.
 type Side uint8
 
+// Buy and Sell are the two sides of every order and trade.
 const (
 	Buy Side = iota
 	Sell
@@ -28,6 +29,8 @@ func (s Side) String() string {
 // working without naming the field.
 type Type uint8
 
+// Limit and Market are the supported order types. See Type for
+// behavioural differences.
 const (
 	Limit Type = iota
 	Market
