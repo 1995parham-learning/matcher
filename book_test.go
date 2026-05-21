@@ -115,6 +115,60 @@ func TestMakerPriceWins_TakerImproves(t *testing.T) {
 	}
 }
 
+func TestMarketBuy_SweepsUntilFilled(t *testing.T) {
+	// A market buy ignores price and walks asks until its quantity is
+	// satisfied.
+	b := NewBook()
+	b.Match(Order{ID: 1, Side: Sell, Price: 100, Quantity: 2})
+	b.Match(Order{ID: 2, Side: Sell, Price: 105, Quantity: 2})
+	b.Match(Order{ID: 3, Side: Sell, Price: 999, Quantity: 2})
+
+	trades, rest := b.Match(Order{ID: 4, Side: Buy, Type: Market, Quantity: 5})
+	if len(trades) != 3 {
+		t.Fatalf("want 3 trades, got %+v", trades)
+	}
+	if trades[0].Price != 100 || trades[1].Price != 105 || trades[2].Price != 999 {
+		t.Fatalf("expected price sweep 100→105→999, got %+v", trades)
+	}
+	if trades[2].Quantity != 1 {
+		t.Fatalf("expected last trade to be partial qty=1, got %+v", trades[2])
+	}
+	if rest != nil {
+		t.Fatalf("market order should never rest, got %+v", rest)
+	}
+}
+
+func TestMarketSell_UnfilledIsCancelledNotRested(t *testing.T) {
+	// Liquidity runs out before the market order is filled. The
+	// residual must NOT show up on the book.
+	b := NewBook()
+	b.Match(Order{ID: 1, Side: Buy, Price: 100, Quantity: 3})
+
+	trades, rest := b.Match(Order{ID: 2, Side: Sell, Type: Market, Quantity: 10})
+	if len(trades) != 1 || trades[0].Quantity != 3 {
+		t.Fatalf("want one 3-qty trade, got %+v", trades)
+	}
+	if rest != nil {
+		t.Fatalf("market residual must be dropped, got %+v", rest)
+	}
+	if _, ok := b.BestAsk(); ok {
+		t.Fatalf("ask side must remain empty — market order must not rest")
+	}
+	if _, ok := b.BestBid(); ok {
+		t.Fatalf("bid side should now be empty too")
+	}
+}
+
+func TestMarketOrder_EmptyBook(t *testing.T) {
+	// No liquidity at all: market order produces nothing and rests
+	// nothing.
+	b := NewBook()
+	trades, rest := b.Match(Order{ID: 1, Side: Buy, Type: Market, Quantity: 5})
+	if len(trades) != 0 || rest != nil {
+		t.Fatalf("expected no-op on empty book, got trades=%+v rest=%+v", trades, rest)
+	}
+}
+
 func TestSellSideMirrorsBuySide(t *testing.T) {
 	// A symmetric scenario: aggressive sell sweeps bids.
 	b := NewBook()

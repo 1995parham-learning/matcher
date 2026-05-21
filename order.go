@@ -16,7 +16,31 @@ func (s Side) String() string {
 	return "SELL"
 }
 
-// Order is a resting or incoming limit order.
+// Type distinguishes how aggressively an order is willing to trade.
+//
+//   - Limit:  trades only at Price or better. Unfilled residual rests
+//     on the book.
+//   - Market: trades at any price the opposite side is offering.
+//     Price is ignored. Unfilled residual is cancelled, not rested —
+//     a market order has no price to rest at.
+//
+// Limit is the zero value, so existing limit-only callers keep
+// working without naming the field.
+type Type uint8
+
+const (
+	Limit Type = iota
+	Market
+)
+
+func (t Type) String() string {
+	if t == Market {
+		return "MKT"
+	}
+	return "LMT"
+}
+
+// Order is a resting or incoming order.
 //
 // Price and Quantity are integers to keep the matcher exact — real
 // engines never use floats. Pick a unit (cents, ticks, satoshis) and
@@ -28,7 +52,8 @@ func (s Side) String() string {
 type Order struct {
 	ID       uint64
 	Side     Side
-	Price    int64
+	Type     Type
+	Price    int64 // ignored when Type == Market
 	Quantity int64
 	Seq      uint64
 }

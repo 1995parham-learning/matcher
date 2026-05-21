@@ -58,16 +58,21 @@ func (b *Book) BestAsk() (price int64, ok bool) {
 
 // Match is the heart of the engine.
 //
-// It takes an incoming limit order and walks the opposite side of the
-// book from best price outward, generating trades for as long as:
+// It takes an incoming order and walks the opposite side of the book
+// from best price outward, generating trades for as long as:
 //   - the incoming order still has quantity left, AND
-//   - the best resting price still "crosses" the incoming limit
-//     (a buy crosses when its limit >= the best ask; a sell crosses
-//     when its limit <= the best bid).
+//   - the best resting price still "crosses" the incoming order.
 //
-// Anything that does not cross — including the residual of a partial
-// fill — is added to the book as a new resting order. The returned
-// `rest` points to that resting order (or is nil if fully filled).
+// Crossing depends on order type:
+//   - Limit:  a buy crosses when its limit >= the best ask; a sell
+//     crosses when its limit <= the best bid.
+//   - Market: always crosses — keep matching until the book runs out
+//     of liquidity on that side.
+//
+// What happens to an unfilled residual also depends on type. A Limit
+// residual is added to the book and returned via `rest`. A Market
+// residual is dropped on the floor — there is no price at which it
+// could rest — and `rest` is nil.
 //
 // Trades are reported at the *resting* order's price. The order that
 // was already on the book is the maker; the incoming order is the
@@ -77,11 +82,11 @@ func (b *Book) Match(incoming Order) (trades []Trade, rest *Order) {
 		return nil, nil
 	}
 
-	opposite, crosses := b.oppositeSide(incoming.Side)
+	opposite, crosses := b.oppositeSide(incoming)
 
 	for incoming.Quantity > 0 && len(*opposite) > 0 {
 		best := (*opposite)[0]
-		if !crosses(best.price, incoming.Price) {
+		if !crosses(best.price) {
 			break
 		}
 
@@ -114,7 +119,7 @@ func (b *Book) Match(incoming Order) (trades []Trade, rest *Order) {
 		}
 	}
 
-	if incoming.Quantity > 0 {
+	if incoming.Quantity > 0 && incoming.Type == Limit {
 		rest = b.rest(incoming)
 	}
 	return trades, rest
@@ -125,12 +130,20 @@ func (b *Book) Match(incoming Order) (trades []Trade, rest *Order) {
 //
 // Returning the pointer (not the slice) lets Match mutate the book —
 // reslicing as price levels are exhausted — without re-finding the
-// side every iteration.
-func (b *Book) oppositeSide(side Side) (*[]*priceLevel, func(restingPrice, incomingPrice int64) bool) {
-	if side == Buy {
-		return &b.Asks, func(resting, in int64) bool { return in >= resting }
+// side every iteration. Capturing the incoming order's limit (or its
+// Market type) inside the closure keeps the hot inner loop branch-free.
+func (b *Book) oppositeSide(o Order) (*[]*priceLevel, func(restingPrice int64) bool) {
+	always := func(int64) bool { return true }
+	if o.Side == Buy {
+		if o.Type == Market {
+			return &b.Asks, always
+		}
+		return &b.Asks, func(resting int64) bool { return o.Price >= resting }
 	}
-	return &b.Bids, func(resting, in int64) bool { return in <= resting }
+	if o.Type == Market {
+		return &b.Bids, always
+	}
+	return &b.Bids, func(resting int64) bool { return o.Price <= resting }
 }
 
 // rest inserts the residual of a partially filled (or untouched)
