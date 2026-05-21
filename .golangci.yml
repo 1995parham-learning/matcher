@@ -1,0 +1,40 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: all
+  disable:
+    # Style choices that conflict with this code intentionally.
+    - depguard          # would need an explicit allow/deny list
+    - exhaustruct       # we rely on zero values (Order.Type defaults to Limit)
+    - varnamelen        # b, o, t are idiomatic here
+    - wsl               # opinionated whitespace
+    - wsl_v5
+    - nlreturn          # newline-before-return is noisy
+    - testpackage       # tests live in-package on purpose
+    - paralleltest      # tiny tests, parallelism not worth annotating
+    - ireturn
+    - mnd               # demo/test code uses literal prices and qtys
+    - lll
+    - godox             # we have no TODOs to police
+    - tagliatelle
+    - err113            # no errors created yet
+    - gochecknoglobals
+    - forbidigo         # demo intentionally prints to stdout
+    - nonamedreturns    # named returns document the Match signature
+    - gomodguard        # deprecated alias, replaced by gomodguard_v2
+    - gomodguard_v2     # would need an explicit module allow/denylist
+    # Complexity caps that don't fit a single-file matching engine.
+    - gocyclo
+    - cyclop
+    - funlen
+    - nestif
+    - gocognit
+    - maintidx
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
