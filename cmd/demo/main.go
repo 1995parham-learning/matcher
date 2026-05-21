@@ -1,9 +1,12 @@
+// Command demo runs a narrated walk-through of the matcher: it seeds
+// a small book, sends one aggressive order, and prints the trades and
+// resulting book state.
 package main
 
 import (
 	"fmt"
 
-	"github.com/parham/matcher"
+	"github.com/1995parham-learning/matcher"
 )
 
 // A small narrated walk-through of what the engine does. Run with:
