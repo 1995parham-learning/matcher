@@ -1,6 +1,7 @@
 # matcher
 
-[![ci](https://github.com/1995parham-learning/matcher/actions/workflows/ci.yml/badge.svg)](https://github.com/1995parham-learning/matcher/actions/workflows/ci.yml)
+[![ci](https://img.shields.io/github/actions/workflow/status/1995parham-learning/matcher/ci.yml?branch=main&style=for-the-badge&label=ci)](https://github.com/1995parham-learning/matcher/actions/workflows/ci.yml)
+[![go](https://img.shields.io/github/go-mod/go-version/1995parham-learning/matcher?style=for-the-badge&logo=go)](https://go.dev)
 
 A small Go order book and matching engine, written to make the
 mechanics of a price-time-priority exchange easy to read. No
