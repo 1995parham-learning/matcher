@@ -3,6 +3,7 @@
 <p align="center">
   <a href="https://github.com/1995parham-learning/matcher/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/1995parham-learning/matcher/ci.yml?branch=main&style=for-the-badge&label=ci" alt="ci"></a>
   <a href="https://go.dev"><img src="https://img.shields.io/github/go-mod/go-version/1995parham-learning/matcher?style=for-the-badge&logo=go" alt="go"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/1995parham-learning/matcher?style=for-the-badge" alt="license"></a>
 </p>
 
 A small Go order book and matching engine, written to make the
@@ -111,3 +112,7 @@ change in one place:
   trade price.
 - Order cancel / modify by ID — index orders so they can be located
   without walking the book.
+
+## License
+
+Released under the [GNU General Public License v3.0](LICENSE).
